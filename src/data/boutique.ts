@@ -14,6 +14,19 @@ export type Category = {
   image: string;
 };
 
+export type GalleryImage = {
+  src: string;
+  alt: string;
+};
+
+export type Testimonial = {
+  name: string;
+  location: string;
+  avatar: string;
+  text: string;
+  rating: number;
+};
+
 export const categories: Category[] = [
   {
     id: 'dresses',

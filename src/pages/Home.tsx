@@ -1,14 +1,27 @@
-import { ArrowRight, Star, Quote } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, Star, Quote, Loader2 } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { ProductCard } from '@/components/ProductCard';
-import { categories, products, testimonials, heroImage, boutiqueInfo } from '@/data/boutique';
+import { getProducts, getCategories, getTestimonials } from '@/api/client';
+import { heroImage, boutiqueInfo } from '@/data/boutique';
 import type { Route } from '@/hooks/useRoute';
+import type { Product, Category, Testimonial } from '@/data/boutique';
 
 type HomeProps = {
   navigate: (r: Route) => void;
 };
 
 export function Home({ navigate }: HomeProps) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+
+  useEffect(() => {
+    getProducts().then(setProducts).catch(() => {});
+    getCategories().then(setCategories).catch(() => {});
+    getTestimonials().then(setTestimonials).catch(() => {});
+  }, []);
+
   const featured = products.filter((p) => p.tag).concat(products.slice(0, 8)).slice(0, 8);
 
   return (
@@ -129,11 +142,17 @@ export function Home({ navigate }: HomeProps) {
           </Reveal>
 
           <div className="grid grid-cols-2 gap-5 md:gap-6 lg:grid-cols-4">
-            {featured.map((product, i) => (
-              <Reveal key={product.id} delay={(i % 4) * 80}>
-                <ProductCard product={product} />
-              </Reveal>
-            ))}
+            {featured.length > 0 ? (
+              featured.map((product, i) => (
+                <Reveal key={product.id} delay={(i % 4) * 80}>
+                  <ProductCard product={product} />
+                </Reveal>
+              ))
+            ) : (
+              <div className="col-span-full flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-rose-400" />
+              </div>
+            )}
           </div>
         </div>
       </section>

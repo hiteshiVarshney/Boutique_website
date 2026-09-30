@@ -1,18 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomIn, Loader2, AlertCircle } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
-import { galleryImages } from '@/data/boutique';
+import { getGallery } from '@/api/client';
+import type { GalleryImage } from '@/data/boutique';
 
 export function Gallery() {
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getGallery()
+      .then((data) => setImages(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const close = useCallback(() => setLightbox(null), []);
   const next = useCallback(() => {
-    setLightbox((cur) => (cur === null ? cur : (cur + 1) % galleryImages.length));
-  }, []);
+    setLightbox((cur) => (cur === null ? cur : (cur + 1) % images.length));
+  }, [images.length]);
   const prev = useCallback(() => {
-    setLightbox((cur) => (cur === null ? cur : (cur - 1 + galleryImages.length) % galleryImages.length));
-  }, []);
+    setLightbox((cur) => (cur === null ? cur : (cur - 1 + images.length) % images.length));
+  }, [images.length]);
 
   useEffect(() => {
     if (lightbox === null) return;
@@ -47,32 +58,43 @@ export function Gallery() {
 
       {/* Masonry grid */}
       <section className="mx-auto max-w-7xl px-5 py-12 lg:px-10 lg:py-16">
-        <div className="columns-2 gap-4 md:columns-3 lg:columns-4 [&>*]:mb-4">
-          {galleryImages.map((img, i) => (
-            <Reveal key={i} delay={(i % 4) * 60}>
-              <button
-                onClick={() => setLightbox(i)}
-                className="group relative block w-full overflow-hidden rounded-xl"
-              >
-                <img
-                  src={img.src}
-                  alt={img.alt}
-                  loading="lazy"
-                  className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                    i % 3 === 0 ? 'aspect-[3/4]' : i % 3 === 1 ? 'aspect-square' : 'aspect-[4/5]'
-                  }`}
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-ink-900/0 transition-colors duration-300 group-hover:bg-ink-900/30">
-                  <ZoomIn className="h-7 w-7 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                </div>
-              </button>
-            </Reveal>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-rose-400" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <AlertCircle className="h-8 w-8 text-rose-400" />
+            <p className="text-sm text-ink-500">Could not load gallery images. Please try again later.</p>
+          </div>
+        ) : (
+          <div className="columns-2 gap-4 md:columns-3 lg:columns-4 [&>*]:mb-4">
+            {images.map((img, i) => (
+              <Reveal key={i} delay={(i % 4) * 60}>
+                <button
+                  onClick={() => setLightbox(i)}
+                  className="group relative block w-full overflow-hidden rounded-xl"
+                >
+                  <img
+                    src={img.src}
+                    alt={img.alt}
+                    loading="lazy"
+                    className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                      i % 3 === 0 ? 'aspect-[3/4]' : i % 3 === 1 ? 'aspect-square' : 'aspect-[4/5]'
+                    }`}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-ink-900/0 transition-colors duration-300 group-hover:bg-ink-900/30">
+                    <ZoomIn className="h-7 w-7 text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  </div>
+                </button>
+              </Reveal>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Lightbox */}
-      {lightbox !== null && (
+      {lightbox !== null && images.length > 0 && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/90 backdrop-blur-sm animate-fade-in"
           onClick={close}
@@ -95,12 +117,12 @@ export function Gallery() {
 
           <figure className="mx-16 max-h-[85vh] max-w-4xl" onClick={(e) => e.stopPropagation()}>
             <img
-              src={galleryImages[lightbox].src}
-              alt={galleryImages[lightbox].alt}
+              src={images[lightbox].src}
+              alt={images[lightbox].alt}
               className="max-h-[85vh] w-auto rounded-lg object-contain animate-scale-in"
             />
             <figcaption className="mt-4 text-center text-sm text-white/70">
-              {galleryImages[lightbox].alt} &middot; {lightbox + 1} / {galleryImages.length}
+              {images[lightbox].alt} &middot; {lightbox + 1} / {images.length}
             </figcaption>
           </figure>
 

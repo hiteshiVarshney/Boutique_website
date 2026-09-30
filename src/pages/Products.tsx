@@ -1,18 +1,36 @@
-import { useState, useMemo } from 'react';
-import { SlidersHorizontal } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { ProductCard } from '@/components/ProductCard';
-import { products, categories } from '@/data/boutique';
+import { getProducts, getProductsByCategory, getCategories } from '@/api/client';
+import type { Product, Category } from '@/data/boutique';
 
 export function Products() {
   const [active, setActive] = useState<string>('all');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    const fetcher = active === 'all' ? getProducts() : getProductsByCategory(active);
+    fetcher
+      .then((data) => setProducts(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [active]);
 
   const filters = [{ id: 'all', name: 'All' }, ...categories.map((c) => ({ id: c.id, name: c.name }))];
 
-  const filtered = useMemo(() => {
-    if (active === 'all') return products;
-    return products.filter((p) => p.category === active);
-  }, [active]);
+  const filtered = useMemo(() => products, [products]);
 
   return (
     <div className="pt-16">
@@ -52,21 +70,34 @@ export function Products() {
 
       {/* Products grid */}
       <section className="mx-auto max-w-7xl px-5 py-12 lg:px-10 lg:py-16">
-        <p className="mb-8 text-sm text-ink-400">
-          Showing {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
-        </p>
-        <div className="grid grid-cols-2 gap-5 md:gap-6 lg:grid-cols-4">
-          {filtered.map((product, i) => (
-            <Reveal key={product.id} delay={(i % 4) * 80}>
-              <ProductCard product={product} />
-            </Reveal>
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="text-ink-400">No products in this category yet. Check back soon!</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-rose-400" />
           </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <AlertCircle className="h-8 w-8 text-rose-400" />
+            <p className="text-sm text-ink-500">Could not load products. Please try again later.</p>
+          </div>
+        ) : (
+          <>
+            <p className="mb-8 text-sm text-ink-400">
+              Showing {filtered.length} {filtered.length === 1 ? 'item' : 'items'}
+            </p>
+            <div className="grid grid-cols-2 gap-5 md:gap-6 lg:grid-cols-4">
+              {filtered.map((product, i) => (
+                <Reveal key={product.id} delay={(i % 4) * 80}>
+                  <ProductCard product={product} />
+                </Reveal>
+              ))}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="py-20 text-center">
+                <p className="text-ink-400">No products in this category yet. Check back soon!</p>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

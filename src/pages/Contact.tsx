@@ -1,22 +1,30 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, MessageCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, MessageCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { boutiqueInfo } from '@/data/boutique';
+import { sendContactMessage } from '@/api/client';
+
+type Status = 'idle' | 'sending' | 'success' | 'error';
 
 export function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<Status>('idle');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const waText = `Hello ${boutiqueInfo.name}, my name is ${form.name}. ${form.message}`;
-    const waLink = `https://wa.me/${boutiqueInfo.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`;
-    window.open(waLink, '_blank');
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
+    setStatus('sending');
+    try {
+      await sendContactMessage(form);
+      const waText = `Hello ${boutiqueInfo.name}, my name is ${form.name}. ${form.message}`;
+      const waLink = `https://wa.me/${boutiqueInfo.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(waText)}`;
+      window.open(waLink, '_blank');
+      setStatus('success');
       setForm({ name: '', email: '', message: '' });
-    }, 4000);
+      setTimeout(() => setStatus('idle'), 4000);
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 4000);
+    }
   };
 
   const contactItems = [
@@ -94,12 +102,23 @@ export function Contact() {
                 </div>
                 <button
                   type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-rose-500 px-6 py-3.5 text-sm uppercase tracking-wider text-white transition-all hover:bg-rose-600 hover:shadow-lg"
+                  disabled={status === 'sending'}
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-rose-500 px-6 py-3.5 text-sm uppercase tracking-wider text-white transition-all hover:bg-rose-600 hover:shadow-lg disabled:opacity-60"
                 >
-                  {sent ? (
+                  {status === 'success' ? (
                     <>
                       <CheckCircle2 className="h-5 w-5" />
-                      Opening WhatsApp...
+                      Message sent!
+                    </>
+                  ) : status === 'error' ? (
+                    <>
+                      <AlertCircle className="h-5 w-5" />
+                      Failed to send
+                    </>
+                  ) : status === 'sending' ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Sending...
                     </>
                   ) : (
                     <>
