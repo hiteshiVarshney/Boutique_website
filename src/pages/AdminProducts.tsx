@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
-import { getProducts, createProduct } from '@/api/client';
-import { getCategories } from '@/api/client';
+import { useState, useEffect, useRef } from 'react';
+import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X } from 'lucide-react';
+import { getProducts, createProduct, getCategories } from '@/api/client';
 import type { Product, Category } from '@/data/boutique';
 import type { Route } from '@/hooks/useRoute';
 
@@ -12,40 +11,112 @@ type AdminProductsProps = {
 type Status = 'idle' | 'submitting' | 'success' | 'error';
 
 export function AdminProducts({ navigate }: AdminProductsProps) {
-  const [form, setForm] = useState({ name: '', category: '', price: '', image: '', tag: '' });
+  const [form, setForm] = useState({ name: '', category: '', price: '', tag: '' });
+  const [imagePreview, setImagePreview] = useState('');
+  const [imageFileName, setImageFileName] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+  const [listError, setListError] = useState('');
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [catError, setCatError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProducts = () => {
     setLoadingList(true);
+    setListError('');
     getProducts()
-      .then(setProducts)
-      .catch(() => {})
+      .then((data) => {
+        setProducts(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        setListError(err instanceof Error ? err.message : 'Failed to load products');
+        setProducts([]);
+      })
       .finally(() => setLoadingList(false));
   };
 
+  const loadCategories = () => {
+    setLoadingCats(true);
+    setCatError('');
+    getCategories()
+      .then((data) => {
+        setCategories(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        setCatError(err instanceof Error ? err.message : 'Failed to load categories');
+        setCategories([]);
+      })
+      .finally(() => setLoadingCats(false));
+  };
+
   useEffect(() => {
-    getCategories().then(setCategories).catch(() => {});
+    loadCategories();
     loadProducts();
   }, []);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('Please select an image file.');
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 4000);
+      return;
+    }
+
+    setImageFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImagePreview('');
+    setImageFileName('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const resetForm = () => {
+    setForm({ name: '', category: '', price: '', tag: '' });
+    clearImage();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!imagePreview) {
+      setStatus('error');
+      setErrorMsg('Please select a product image.');
+      setTimeout(() => setStatus('idle'), 4000);
+      return;
+    }
+
     setStatus('submitting');
     setErrorMsg('');
+
     try {
+      // TODO: Replace with Cloudinary upload. For now, send the data URL directly
+      // so the backend's image string field works without a storage service.
+      const imageUrl = imagePreview;
+
       await createProduct({
         name: form.name,
         category: form.category,
         price: Number(form.price),
-        image: form.image,
+        image: imageUrl,
         tag: form.tag || undefined,
       });
+
       setStatus('success');
-      setForm({ name: '', category: '', price: '', image: '', tag: '' });
+      resetForm();
       loadProducts();
       setTimeout(() => setStatus('idle'), 4000);
     } catch (err) {
@@ -100,17 +171,29 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-ink-500">
                     Category
                   </label>
-                  <select
-                    required
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full rounded-lg border border-ink-200 bg-ink-50/50 px-4 py-2.5 text-sm text-ink-800 outline-none transition-colors focus:border-rose-400 focus:bg-white"
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                  {loadingCats ? (
+                    <div className="flex items-center gap-2 py-2.5 text-sm text-ink-400">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading categories...
+                    </div>
+                  ) : catError ? (
+                    <div className="flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-2.5 text-sm text-rose-600">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      {catError}
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={form.category}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                      className="w-full rounded-lg border border-ink-200 bg-ink-50/50 px-4 py-2.5 text-sm text-ink-800 outline-none transition-colors focus:border-rose-400 focus:bg-white"
+                    >
+                      <option value="">Select a category</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-ink-500">
@@ -129,16 +212,43 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-ink-500">
-                    Image URL
+                    Product Image
                   </label>
                   <input
-                    type="url"
-                    required
-                    value={form.image}
-                    onChange={(e) => setForm({ ...form, image: e.target.value })}
-                    className="w-full rounded-lg border border-ink-200 bg-ink-50/50 px-4 py-2.5 text-sm text-ink-800 outline-none transition-colors focus:border-rose-400 focus:bg-white"
-                    placeholder="https://images.pexels.com/..."
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
                   />
+                  {!imagePreview ? (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-ink-200 bg-ink-50/50 px-4 py-8 text-sm text-ink-400 transition-colors hover:border-rose-400 hover:text-rose-500"
+                    >
+                      <Upload className="h-6 w-6" />
+                      Choose Image
+                    </button>
+                  ) : (
+                    <div className="relative overflow-hidden rounded-lg border border-ink-200">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="aspect-[3/4] w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={clearImage}
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink-900/70 text-white transition-colors hover:bg-ink-900"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      <p className="truncate bg-ink-900/60 px-3 py-1.5 text-xs text-white">
+                        {imageFileName}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-ink-500">
@@ -201,6 +311,17 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-6 w-6 animate-spin text-rose-400" />
                 </div>
+              ) : listError ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                  <AlertCircle className="h-8 w-8 text-rose-400" />
+                  <p className="text-sm text-rose-600">{listError}</p>
+                  <button
+                    onClick={loadProducts}
+                    className="text-sm text-ink-500 underline transition-colors hover:text-rose-500"
+                  >
+                    Try again
+                  </button>
+                </div>
               ) : products.length === 0 ? (
                 <p className="py-12 text-center text-sm text-ink-400">No products yet.</p>
               ) : (
@@ -235,7 +356,7 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                                 {p.tag}
                               </span>
                             ) : (
-                              <span className="text-ink-300">—</span>
+                              <span className="text-ink-300">&mdash;</span>
                             )}
                           </td>
                         </tr>
