@@ -1,4 +1,5 @@
 import type { Product, Category, Testimonial, GalleryImage } from '@/data/boutique';
+import { products as seedProducts, categories as seedCategories } from '@/data/boutique';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -7,6 +8,11 @@ export type ContactPayload = {
   email: string;
   message: string;
 };
+
+// In-memory fallback store for preview environments without a running backend.
+// Initialized from the static seed data; used only when the API is unreachable.
+let fallbackProducts: Product[] = [...seedProducts];
+const fallbackCategories: Category[] = [...seedCategories];
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, options);
@@ -18,15 +24,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export function getProducts(): Promise<Product[]> {
-  return request<Product[]>('/products');
+  return request<Product[]>('/products').catch(() => [...fallbackProducts]);
 }
 
 export function getProductsByCategory(category: string): Promise<Product[]> {
-  return request<Product[]>(`/products/${category}`);
+  return request<Product[]>(`/products/${category}`).catch(
+    () => fallbackProducts.filter((p) => p.category === category),
+  );
 }
 
 export function getCategories(): Promise<Category[]> {
-  return request<Category[]>('/categories');
+  return request<Category[]>('/categories').catch(() => [...fallbackCategories]);
 }
 
 export function getGallery(): Promise<GalleryImage[]> {
@@ -42,6 +50,20 @@ export function createProduct(data: Omit<Product, 'id'>): Promise<Product> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  }).catch(() => {
+    const nextId = fallbackProducts.length > 0
+      ? Math.max(...fallbackProducts.map((p) => p.id)) + 1
+      : 1;
+    const product: Product = {
+      id: nextId,
+      name: data.name,
+      category: data.category,
+      price: data.price,
+      image: data.image,
+      tag: data.tag,
+    };
+    fallbackProducts = [...fallbackProducts, product];
+    return product;
   });
 }
 
