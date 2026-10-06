@@ -1,6 +1,6 @@
 import type { Product, Category, Testimonial, GalleryImage } from '@/data/boutique';
 
-const API_BASE = 'http://localhost:5001/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 export type ContactPayload = {
   name: string;
