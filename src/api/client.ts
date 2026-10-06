@@ -37,6 +37,14 @@ export function getTestimonials(): Promise<Testimonial[]> {
   return request<Testimonial[]>('/testimonials');
 }
 
+export function createProduct(data: Omit<Product, 'id'>): Promise<Product> {
+  return request<Product>('/products', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
 export function sendContactMessage(data: ContactPayload): Promise<{ success: boolean; id: string }> {
   return request<{ success: boolean; id: string }>('/contact', {
     method: 'POST',

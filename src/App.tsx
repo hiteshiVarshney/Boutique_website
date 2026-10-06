@@ -7,6 +7,7 @@ import { About } from '@/pages/About';
 import { Products } from '@/pages/Products';
 import { Gallery } from '@/pages/Gallery';
 import { Contact } from '@/pages/Contact';
+import { AdminProducts } from '@/pages/AdminProducts';
 
 function App() {
   const [route, navigate] = useRoute();
@@ -23,6 +24,8 @@ function App() {
         return <Gallery />;
       case 'contact':
         return <Contact />;
+      case 'admin/products':
+        return <AdminProducts navigate={navigate} />;
       default:
         return <Home navigate={navigate} />;
     }
