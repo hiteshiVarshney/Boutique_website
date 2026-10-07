@@ -72,6 +72,23 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
+// DELETE /api/products/:id — delete a product by numeric id
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const deleted = await Product.findOneAndDelete({ id: Number(id) });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json({ success: true, id: deleted.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/products/:category — products filtered by category
 router.get('/:category', async (req, res, next) => {
   try {

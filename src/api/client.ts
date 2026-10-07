@@ -139,6 +139,25 @@ export function updateProduct(id: number, data: Omit<Product, 'id'>): Promise<Up
     });
 }
 
+export type DeleteProductResult = {
+  success: boolean;
+  persisted: boolean;
+};
+
+export function deleteProduct(id: number): Promise<DeleteProductResult> {
+  return request<{ success: boolean; id: number }>(`/products/${id}`, {
+    method: 'DELETE',
+  })
+    .then(() => ({ success: true, persisted: true }))
+    .catch((err) => {
+      if (!isUnreachable(err)) {
+        throw err;
+      }
+      fallbackProducts = fallbackProducts.filter((p) => p.id !== id);
+      return { success: true, persisted: false };
+    });
+}
+
 export function sendContactMessage(data: ContactPayload): Promise<{ success: boolean; id: string }> {
   return request<{ success: boolean; id: string }>('/contact', {
     method: 'POST',

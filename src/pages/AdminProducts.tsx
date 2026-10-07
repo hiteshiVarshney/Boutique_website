@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X, Pencil } from 'lucide-react';
-import { getProducts, createProduct, updateProduct, getCategories } from '@/api/client';
+import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X, Pencil, Trash2 } from 'lucide-react';
+import { getProducts, createProduct, updateProduct, deleteProduct, getCategories } from '@/api/client';
 import type { Product, Category } from '@/data/boutique';
 import type { Route } from '@/hooks/useRoute';
 
@@ -24,6 +24,9 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
   const [listError, setListError] = useState('');
   const [loadingCats, setLoadingCats] = useState(true);
   const [catError, setCatError] = useState('');
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProducts = () => {
@@ -109,6 +112,36 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
   const cancelEdit = () => {
     setEditingProduct(null);
     resetForm();
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete || deleting) return;
+
+    setDeleting(true);
+    setDeleteError('');
+
+    try {
+      const { persisted } = await deleteProduct(productToDelete.id);
+      if (persisted) {
+        setSuccessMsg('Product deleted successfully!');
+        setStatus('success');
+      } else {
+        setSuccessMsg('Backend unavailable — product removed in preview only (not deleted from MongoDB).');
+        setStatus('success');
+      }
+      setProductToDelete(null);
+      loadProducts();
+      setTimeout(() => setStatus('idle'), 5000);
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete product');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setProductToDelete(null);
+    setDeleteError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -412,13 +445,25 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                             )}
                           </td>
                           <td className="py-3">
-                            <button
-                              onClick={() => startEdit(p)}
-                              className="flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
-                            >
-                              <Pencil className="h-4 w-4" />
-                              Edit
-                            </button>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => startEdit(p)}
+                                className="flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
+                              >
+                                <Pencil className="h-4 w-4" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setProductToDelete(p);
+                                  setDeleteError('');
+                                }}
+                                className="flex items-center gap-1.5 text-sm text-ink-400 transition-colors hover:text-rose-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -430,6 +475,58 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
           </div>
         </div>
       </div>
+
+      {productToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/50 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <h3 className="font-serif text-lg font-medium text-ink-900">Delete Product</h3>
+            </div>
+            <p className="mb-2 text-sm text-ink-600">
+              Are you sure you want to delete{' '}
+              <span className="font-medium text-ink-900">{productToDelete.name}</span>?
+            </p>
+            <p className="mb-5 text-sm text-ink-500">
+              This action is permanent and cannot be undone. The product will be removed from MongoDB.
+            </p>
+            {deleteError && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-2.5 text-sm text-rose-600">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {deleteError}
+              </div>
+            )}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={cancelDelete}
+                disabled={deleting}
+                className="rounded-full border border-ink-200 px-5 py-2.5 text-sm text-ink-600 transition-colors hover:bg-ink-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 rounded-full bg-rose-500 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-rose-600 disabled:opacity-60"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4" />
+                    Delete Permanently
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
