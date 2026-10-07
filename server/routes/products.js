@@ -40,6 +40,38 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+// PUT /api/products/:id — update an existing product
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, category, price, image, tag } = req.body;
+
+    if (!name || !category || price === undefined || !image) {
+      return res.status(400).json({ error: 'name, category, price, and image are required' });
+    }
+
+    const updated = await Product.findOneAndUpdate(
+      { id: Number(id) },
+      {
+        name,
+        category,
+        price: Number(price),
+        image,
+        tag: tag || '',
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/products/:category — products filtered by category
 router.get('/:category', async (req, res, next) => {
   try {

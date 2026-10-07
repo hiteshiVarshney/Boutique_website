@@ -69,6 +69,11 @@ export type CreateProductResult = {
   persisted: boolean;
 };
 
+export type UpdateProductResult = {
+  product: Product;
+  persisted: boolean;
+};
+
 export function createProduct(data: Omit<Product, 'id'>): Promise<CreateProductResult> {
   return request<Product>('/products', {
     method: 'POST',
@@ -95,6 +100,41 @@ export function createProduct(data: Omit<Product, 'id'>): Promise<CreateProductR
         tag: data.tag || '',
       };
       fallbackProducts = [...fallbackProducts, product];
+      return { product, persisted: false };
+    });
+}
+
+export function updateProduct(id: number, data: Omit<Product, 'id'>): Promise<UpdateProductResult> {
+  return request<Product>(`/products/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+    .then((product) => ({ product, persisted: true }))
+    .catch((err) => {
+      if (!isUnreachable(err)) {
+        throw err;
+      }
+      fallbackProducts = fallbackProducts.map((p) =>
+        p.id === id
+          ? {
+              id,
+              name: data.name,
+              category: data.category,
+              price: data.price,
+              image: data.image,
+              tag: data.tag || '',
+            }
+          : p,
+      );
+      const product: Product = {
+        id,
+        name: data.name,
+        category: data.category,
+        price: data.price,
+        image: data.image,
+        tag: data.tag || '',
+      };
       return { product, persisted: false };
     });
 }

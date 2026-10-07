@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X } from 'lucide-react';
-import { getProducts, createProduct, getCategories } from '@/api/client';
+import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X, Pencil } from 'lucide-react';
+import { getProducts, createProduct, updateProduct, getCategories } from '@/api/client';
 import type { Product, Category } from '@/data/boutique';
 import type { Route } from '@/hooks/useRoute';
 
@@ -14,6 +14,7 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
   const [form, setForm] = useState({ name: '', category: '', price: '', tag: '' });
   const [imagePreview, setImagePreview] = useState('');
   const [imageFileName, setImageFileName] = useState('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -90,6 +91,26 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
     clearImage();
   };
 
+  const startEdit = (product: Product) => {
+    setEditingProduct(product);
+    setForm({
+      name: product.name,
+      category: product.category,
+      price: String(product.price),
+      tag: product.tag || '',
+    });
+    setImagePreview(product.image);
+    setImageFileName('');
+    setStatus('idle');
+    setErrorMsg('');
+    setSuccessMsg('');
+  };
+
+  const cancelEdit = () => {
+    setEditingProduct(null);
+    resetForm();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -107,27 +128,38 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
       // TODO: Replace with Cloudinary upload. For now, send the data URL directly
       // so the backend's image string field works without a storage service.
       const imageUrl = imagePreview;
-
-      const { persisted } = await createProduct({
+      const payload = {
         name: form.name,
         category: form.category,
         price: Number(form.price),
         image: imageUrl,
         tag: form.tag || undefined,
-      });
+      };
 
-      setStatus('success');
-      setSuccessMsg(
-        persisted
-          ? 'Product saved to MongoDB successfully!'
-          : 'Backend unavailable — product saved in preview only (not persisted to MongoDB).',
-      );
-      resetForm();
+      if (editingProduct) {
+        const { persisted } = await updateProduct(editingProduct.id, payload);
+        setStatus('success');
+        setSuccessMsg(
+          persisted
+            ? 'Product updated successfully!'
+            : 'Backend unavailable — product updated in preview only (not persisted to MongoDB).',
+        );
+      } else {
+        const { persisted } = await createProduct(payload);
+        setStatus('success');
+        setSuccessMsg(
+          persisted
+            ? 'Product saved to MongoDB successfully!'
+            : 'Backend unavailable — product saved in preview only (not persisted to MongoDB).',
+        );
+      }
+
+      cancelEdit();
       loadProducts();
       setTimeout(() => setStatus('idle'), 5000);
     } catch (err) {
       setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to create product');
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save product');
       setTimeout(() => setStatus('idle'), 5000);
     }
   };
@@ -158,7 +190,20 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
           {/* Form */}
           <div className="lg:col-span-2">
             <div className="rounded-2xl bg-white p-6 shadow-sm lg:p-8">
-              <h2 className="mb-5 font-serif text-xl font-medium text-ink-900">Add Product</h2>
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="font-serif text-xl font-medium text-ink-900">
+                  {editingProduct ? 'Edit Product' : 'Add Product'}
+                </h2>
+                {editingProduct && (
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="text-sm text-ink-400 transition-colors hover:text-rose-500"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-xs uppercase tracking-wider text-ink-500">
@@ -339,7 +384,8 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                         <th className="pb-3 pr-4 font-medium">Name</th>
                         <th className="pb-3 pr-4 font-medium">Category</th>
                         <th className="pb-3 pr-4 font-medium">Price</th>
-                        <th className="pb-3 font-medium">Tag</th>
+                        <th className="pb-3 pr-4 font-medium">Tag</th>
+                        <th className="pb-3 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink-50">
@@ -364,6 +410,15 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                             ) : (
                               <span className="text-ink-300">&mdash;</span>
                             )}
+                          </td>
+                          <td className="py-3">
+                            <button
+                              onClick={() => startEdit(p)}
+                              className="flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              Edit
+                            </button>
                           </td>
                         </tr>
                       ))}
