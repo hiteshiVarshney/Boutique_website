@@ -45,12 +45,17 @@ export function getTestimonials(): Promise<Testimonial[]> {
   return request<Testimonial[]>('/testimonials');
 }
 
-export function createProduct(data: Omit<Product, 'id'>): Promise<Product> {
+export type CreateProductResult = {
+  product: Product;
+  persisted: boolean;
+};
+
+export function createProduct(data: Omit<Product, 'id'>): Promise<CreateProductResult> {
   return request<Product>('/products', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
-  }).catch(() => {
+  }).then((product) => ({ product, persisted: true })).catch(() => {
     const nextId = fallbackProducts.length > 0
       ? Math.max(...fallbackProducts.map((p) => p.id)) + 1
       : 1;
@@ -60,10 +65,10 @@ export function createProduct(data: Omit<Product, 'id'>): Promise<Product> {
       category: data.category,
       price: data.price,
       image: data.image,
-      tag: data.tag,
+      tag: data.tag || '',
     };
     fallbackProducts = [...fallbackProducts, product];
-    return product;
+    return { product, persisted: false };
   });
 }
 

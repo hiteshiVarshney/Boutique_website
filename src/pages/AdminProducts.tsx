@@ -16,6 +16,7 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
   const [imageFileName, setImageFileName] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -107,7 +108,7 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
       // so the backend's image string field works without a storage service.
       const imageUrl = imagePreview;
 
-      await createProduct({
+      const { persisted } = await createProduct({
         name: form.name,
         category: form.category,
         price: Number(form.price),
@@ -116,13 +117,18 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
       });
 
       setStatus('success');
+      setSuccessMsg(
+        persisted
+          ? 'Product saved to MongoDB successfully!'
+          : 'Backend unavailable — product saved in preview only (not persisted to MongoDB).',
+      );
       resetForm();
       loadProducts();
-      setTimeout(() => setStatus('idle'), 4000);
+      setTimeout(() => setStatus('idle'), 5000);
     } catch (err) {
       setStatus('error');
       setErrorMsg(err instanceof Error ? err.message : 'Failed to create product');
-      setTimeout(() => setStatus('idle'), 4000);
+      setTimeout(() => setStatus('idle'), 5000);
     }
   };
 
@@ -286,7 +292,7 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                 {status === 'success' && (
                   <div className="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    Product created successfully!
+                    {successMsg}
                   </div>
                 )}
                 {status === 'error' && (
