@@ -23,8 +23,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new ApiUnreachableError('Cannot connect to the backend server.');
   }
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: 'Request failed' }));
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new ApiUnreachableError('Cannot connect to the backend server.');
+    }
+    const body = await res.json().catch(() => ({ error: `Request failed with status ${res.status}` }));
     throw new Error(body.error || `Request failed with status ${res.status}`);
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new ApiUnreachableError('Cannot connect to the backend server.');
   }
   return res.json() as Promise<T>;
 }

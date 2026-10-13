@@ -409,33 +409,33 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
               ) : products.length === 0 ? (
                 <p className="py-12 text-center text-sm text-ink-400">No products yet.</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                <div className="overflow-hidden">
+                  <table className="w-full table-fixed text-left text-sm">
                     <thead>
                       <tr className="border-b border-ink-100 text-xs uppercase tracking-wider text-ink-400">
-                        <th className="pb-3 pr-4 font-medium">Image</th>
-                        <th className="pb-3 pr-4 font-medium">Name</th>
-                        <th className="pb-3 pr-4 font-medium">Category</th>
-                        <th className="pb-3 pr-4 font-medium">Price</th>
-                        <th className="pb-3 pr-4 font-medium">Tag</th>
-                        <th className="pb-3 font-medium">Actions</th>
+                        <th className="w-16 pb-3 pr-2 font-medium">Image</th>
+                        <th className="pb-3 pr-3 font-medium">Name</th>
+                        <th className="hidden pb-3 pr-3 font-medium sm:table-cell">Category</th>
+                        <th className="w-20 pb-3 pr-3 font-medium">Price</th>
+                        <th className="hidden w-24 pb-3 pr-3 font-medium md:table-cell">Tag</th>
+                        <th className="w-28 pb-3 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-ink-50">
                       {products.map((p) => (
                         <tr key={p.id} className="transition-colors hover:bg-ink-50/50">
-                          <td className="py-3 pr-4">
+                          <td className="py-3 pr-2">
                             <img
                               src={p.image}
                               alt={p.name}
                               loading="lazy"
-                              className="h-12 w-12 rounded-lg object-cover"
+                              className="h-10 w-10 rounded-lg object-cover"
                             />
                           </td>
-                          <td className="py-3 pr-4 font-medium text-ink-900">{p.name}</td>
-                          <td className="py-3 pr-4 text-ink-600">{p.category}</td>
-                          <td className="py-3 pr-4 text-rose-600">${p.price}</td>
-                          <td className="py-3">
+                          <td className="truncate py-3 pr-3 font-medium text-ink-900">{p.name}</td>
+                          <td className="hidden truncate py-3 pr-3 text-ink-600 sm:table-cell">{p.category}</td>
+                          <td className="py-3 pr-3 text-rose-600">${p.price}</td>
+                          <td className="hidden py-3 pr-3 md:table-cell">
                             {p.tag ? (
                               <span className="rounded-full bg-rose-500/10 px-2.5 py-1 text-xs font-medium uppercase tracking-wider text-rose-600">
                                 {p.tag}
@@ -445,12 +445,12 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                             )}
                           </td>
                           <td className="py-3">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                               <button
                                 onClick={() => startEdit(p)}
-                                className="flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
+                                className="flex items-center gap-1 text-sm text-ink-500 transition-colors hover:text-rose-500"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3.5 w-3.5" />
                                 Edit
                               </button>
                               <button
@@ -458,9 +458,9 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
                                   setProductToDelete(p);
                                   setDeleteError('');
                                 }}
-                                className="flex items-center gap-1.5 text-sm text-ink-400 transition-colors hover:text-rose-600"
+                                className="flex items-center gap-1 text-sm text-ink-400 transition-colors hover:text-rose-600"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                                 Delete
                               </button>
                             </div>
