@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus, Loader2, CheckCircle2, AlertCircle, ArrowLeft, Upload, X, Pencil, Trash2, LogOut } from 'lucide-react';
 import { getProducts, createProduct, updateProduct, deleteProduct, getCategories } from '@/api/client';
 import type { Product, Category } from '@/data/boutique';
 import type { Route } from '@/hooks/useRoute';
 
 type AdminProductsProps = {
   navigate: (r: Route) => void;
+  onLogout: () => void;
 };
 
 type Status = 'idle' | 'submitting' | 'success' | 'error';
 
-export function AdminProducts({ navigate }: AdminProductsProps) {
+export function AdminProducts({ navigate, onLogout }: AdminProductsProps) {
   const [form, setForm] = useState({ name: '', category: '', price: '', tag: '' });
   const [imagePreview, setImagePreview] = useState('');
   const [imageFileName, setImageFileName] = useState('');
@@ -122,18 +123,18 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
 
     try {
       const { persisted } = await deleteProduct(productToDelete.id);
-      if (persisted) {
-        setSuccessMsg('Product deleted successfully!');
-        setStatus('success');
-      } else {
-        setSuccessMsg('Backend unavailable — product removed in preview only (not deleted from MongoDB).');
-        setStatus('success');
-      }
+      setSuccessMsg('Product deleted successfully!');
+      setStatus('success');
       setProductToDelete(null);
       loadProducts();
       setTimeout(() => setStatus('idle'), 5000);
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Failed to delete product');
+      const msg = err instanceof Error ? err.message : 'Failed to delete product';
+      if (msg.includes('Authentication required') || msg.includes('expired session')) {
+        navigate('admin/login');
+        return;
+      }
+      setDeleteError(msg);
     } finally {
       setDeleting(false);
     }
@@ -170,29 +171,26 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
       };
 
       if (editingProduct) {
-        const { persisted } = await updateProduct(editingProduct.id, payload);
+        await updateProduct(editingProduct.id, payload);
         setStatus('success');
-        setSuccessMsg(
-          persisted
-            ? 'Product updated successfully!'
-            : 'Backend unavailable — product updated in preview only (not persisted to MongoDB).',
-        );
+        setSuccessMsg('Product updated successfully!');
       } else {
-        const { persisted } = await createProduct(payload);
+        await createProduct(payload);
         setStatus('success');
-        setSuccessMsg(
-          persisted
-            ? 'Product saved to MongoDB successfully!'
-            : 'Backend unavailable — product saved in preview only (not persisted to MongoDB).',
-        );
+        setSuccessMsg('Product saved to MongoDB successfully!');
       }
 
       cancelEdit();
       loadProducts();
       setTimeout(() => setStatus('idle'), 5000);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save product';
+      if (msg.includes('Authentication required') || msg.includes('expired session')) {
+        navigate('admin/login');
+        return;
+      }
       setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to save product');
+      setErrorMsg(msg);
       setTimeout(() => setStatus('idle'), 5000);
     }
   };
@@ -200,14 +198,23 @@ export function AdminProducts({ navigate }: AdminProductsProps) {
   return (
     <div className="min-h-screen bg-ink-50 pt-16">
       <div className="mx-auto max-w-5xl px-5 py-10 lg:px-10">
-        {/* Back link + heading */}
-        <button
-          onClick={() => navigate('home')}
-          className="mb-6 flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to site
-        </button>
+        {/* Back link + heading + logout */}
+        <div className="mb-6 flex items-center justify-between">
+          <button
+            onClick={() => navigate('home')}
+            className="flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to site
+          </button>
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-1.5 rounded-full border border-ink-200 px-4 py-2 text-sm text-ink-600 transition-colors hover:border-rose-300 hover:text-rose-600"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
 
         <div className="mb-8 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500">

@@ -10,14 +10,18 @@ export type ContactPayload = {
 };
 
 // In-memory fallback store for preview environments without a running backend.
-// Initialized from the static seed data; used only when the API is unreachable.
+// Initialized from the static seed data; used only for public GET endpoints
+// when the API is unreachable. Protected write operations never fall back.
 let fallbackProducts: Product[] = [...seedProducts];
 const fallbackCategories: Category[] = [...seedCategories];
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, options);
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      credentials: 'include',
+    });
   } catch {
     // Network-level failure: backend is genuinely unreachable.
     throw new ApiUnreachableError('Cannot connect to the backend server.');
@@ -77,11 +81,6 @@ export type CreateProductResult = {
   persisted: boolean;
 };
 
-export type UpdateProductResult = {
-  product: Product;
-  persisted: boolean;
-};
-
 export function createProduct(data: Omit<Product, 'id'>): Promise<CreateProductResult> {
   return request<Product>('/products', {
     method: 'POST',
@@ -90,25 +89,12 @@ export function createProduct(data: Omit<Product, 'id'>): Promise<CreateProductR
   })
     .then((product) => ({ product, persisted: true }))
     .catch((err) => {
-      // Only fall back to in-memory storage when the backend is genuinely
-      // unreachable (network failure). If the backend responded with a
-      // validation or server error, re-throw so the UI shows the real error.
       if (!isUnreachable(err)) {
         throw err;
       }
-      const nextId = fallbackProducts.length > 0
-        ? Math.max(...fallbackProducts.map((p) => p.id)) + 1
-        : 1;
-      const product: Product = {
-        id: nextId,
-        name: data.name,
-        category: data.category,
-        price: data.price,
-        image: data.image,
-        tag: data.tag || '',
-      };
-      fallbackProducts = [...fallbackProducts, product];
-      return { product, persisted: false };
+      throw new Error(
+        'Cannot connect to the backend server. Product management requires the backend to be running with authentication configured.',
+      );
     });
 }
 
@@ -123,29 +109,16 @@ export function updateProduct(id: number, data: Omit<Product, 'id'>): Promise<Up
       if (!isUnreachable(err)) {
         throw err;
       }
-      fallbackProducts = fallbackProducts.map((p) =>
-        p.id === id
-          ? {
-              id,
-              name: data.name,
-              category: data.category,
-              price: data.price,
-              image: data.image,
-              tag: data.tag || '',
-            }
-          : p,
+      throw new Error(
+        'Cannot connect to the backend server. Product management requires the backend to be running with authentication configured.',
       );
-      const product: Product = {
-        id,
-        name: data.name,
-        category: data.category,
-        price: data.price,
-        image: data.image,
-        tag: data.tag || '',
-      };
-      return { product, persisted: false };
     });
 }
+
+export type UpdateProductResult = {
+  product: Product;
+  persisted: boolean;
+};
 
 export type DeleteProductResult = {
   success: boolean;
@@ -161,8 +134,9 @@ export function deleteProduct(id: number): Promise<DeleteProductResult> {
       if (!isUnreachable(err)) {
         throw err;
       }
-      fallbackProducts = fallbackProducts.filter((p) => p.id !== id);
-      return { success: true, persisted: false };
+      throw new Error(
+        'Cannot connect to the backend server. Product management requires the backend to be running with authentication configured.',
+      );
     });
 }
 

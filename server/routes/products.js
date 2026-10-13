@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { Product } from '../models/Product.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -13,8 +14,8 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST /api/products — create a new product
-router.post('/', async (req, res, next) => {
+// POST /api/products — create a new product (admin only)
+router.post('/', requireAuth, async (req, res, next) => {
   try {
     const { name, category, price, image, tag } = req.body;
 
@@ -40,8 +41,8 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// PUT /api/products/:id — update an existing product
-router.put('/:id', async (req, res, next) => {
+// PUT /api/products/:id — update an existing product (admin only)
+router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, category, price, image, tag } = req.body;
@@ -72,8 +73,8 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-// DELETE /api/products/:id — delete a product by numeric id
-router.delete('/:id', async (req, res, next) => {
+// DELETE /api/products/:id — delete a product by numeric id (admin only)
+router.delete('/:id', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
 
