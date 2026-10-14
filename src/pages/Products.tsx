@@ -5,12 +5,18 @@ import { ProductCard } from '@/components/ProductCard';
 import { getProducts, getProductsByCategory, getCategories } from '@/api/client';
 import type { Product, Category } from '@/data/boutique';
 
-export function Products() {
-  const [active, setActive] = useState<string>('all');
+export function Products({ initialCategory }: { initialCategory?: string }) {
+  const [active, setActive] = useState<string>(initialCategory || 'all');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialCategory !== undefined) {
+      setActive(initialCategory);
+    }
+  }, [initialCategory]);
 
   useEffect(() => {
     getCategories()

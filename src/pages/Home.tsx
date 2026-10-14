@@ -4,11 +4,11 @@ import { Reveal } from '@/components/Reveal';
 import { ProductCard } from '@/components/ProductCard';
 import { getProducts, getCategories, getTestimonials } from '@/api/client';
 import { heroImage, boutiqueInfo } from '@/data/boutique';
-import type { Route } from '@/hooks/useRoute';
+import type { Route, RouteQuery } from '@/hooks/useRoute';
 import type { Product, Category, Testimonial } from '@/data/boutique';
 
 type HomeProps = {
-  navigate: (r: Route) => void;
+  navigate: (r: Route, query?: RouteQuery) => void;
 };
 
 export function Home({ navigate }: HomeProps) {
@@ -97,7 +97,7 @@ export function Home({ navigate }: HomeProps) {
           {categories.map((cat, i) => (
             <Reveal key={cat.id} delay={i * 100}>
               <button
-                onClick={() => navigate('products')}
+                onClick={() => navigate('products', { category: cat.id })}
                 className="group relative block w-full overflow-hidden rounded-2xl"
               >
                 <div className="aspect-[3/4] overflow-hidden">

@@ -12,7 +12,7 @@ import { AdminLogin } from '@/pages/AdminLogin';
 import { AdminProducts } from '@/pages/AdminProducts';
 
 function App() {
-  const [route, navigate] = useRoute();
+  const [route, query, navigate] = useRoute();
   const { auth, checkSession, logout } = useAuth();
 
   const handleLoginSuccess = () => {
@@ -30,7 +30,7 @@ function App() {
       case 'about':
         return <About navigate={navigate} />;
       case 'products':
-        return <Products />;
+        return <Products initialCategory={query.category} />;
       case 'gallery':
         return <Gallery />;
       case 'contact':
