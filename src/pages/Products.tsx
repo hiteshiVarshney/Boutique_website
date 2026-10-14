@@ -1,11 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
-import { SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
+import { SlidersHorizontal, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { Reveal } from '@/components/Reveal';
 import { ProductCard } from '@/components/ProductCard';
 import { getProducts, getProductsByCategory, getCategories } from '@/api/client';
 import type { Product, Category } from '@/data/boutique';
+import type { Route, RouteQuery } from '@/hooks/useRoute';
 
-export function Products({ initialCategory }: { initialCategory?: string }) {
+type ProductsProps = {
+  initialCategory?: string;
+  navigate: (r: Route, query?: RouteQuery) => void;
+};
+
+export function Products({ initialCategory, navigate }: ProductsProps) {
   const [active, setActive] = useState<string>(initialCategory || 'all');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,6 +46,17 @@ export function Products({ initialCategory }: { initialCategory?: string }) {
 
   return (
     <div className="pt-16">
+      {/* Back to Home */}
+      <div className="mx-auto max-w-7xl px-5 pt-6 lg:px-10">
+        <button
+          onClick={() => navigate('home')}
+          className="flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-rose-500"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </button>
+      </div>
+
       {/* Page header */}
       <section className="bg-ink-100/50 py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-5 text-center lg:px-10">

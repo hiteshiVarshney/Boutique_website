@@ -30,7 +30,7 @@ function App() {
       case 'about':
         return <About navigate={navigate} />;
       case 'products':
-        return <Products initialCategory={query.category} />;
+        return <Products initialCategory={query.category} navigate={navigate} />;
       case 'gallery':
         return <Gallery />;
       case 'contact':
