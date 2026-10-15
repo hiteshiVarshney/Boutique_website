@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Lock, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { boutiqueInfo } from '@/data/boutique';
 import type { Route } from '@/hooks/useRoute';
-
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 type AdminLoginProps = {
   navigate: (r: Route) => void;
   onSuccess: () => void;
@@ -22,7 +22,7 @@ export function AdminLogin({ navigate, onSuccess }: AdminLoginProps) {
     setError('');
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

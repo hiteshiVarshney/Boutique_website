@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 export type AuthState = {
   authenticated: boolean;
   username: string | null;
@@ -14,7 +14,7 @@ export function useAuth() {
   });
 
   const checkSession = useCallback(() => {
-    return fetch('/api/auth/session', { credentials: 'include' })
+    return fetch(`${API_BASE}/auth/session`, { credentials: 'include' })
       .then((res) => res.json())
       .then((data: { authenticated: boolean; username?: string }) => {
         setAuth({
@@ -35,7 +35,7 @@ export function useAuth() {
   }, [checkSession]);
 
   const logout = useCallback(async () => {
-    await fetch('/api/auth/logout', {
+    await fetch(`${API_BASE}/auth/logout`,  {
       method: 'POST',
       credentials: 'include',
     }).catch(() => {});
